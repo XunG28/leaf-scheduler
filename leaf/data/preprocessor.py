@@ -104,14 +104,14 @@ def preprocess_smard_data(df: pd.DataFrame) -> pd.DataFrame:
     # =========================================================================
     # Step 1: timestamp conversion
     # =========================================================================
-    print("⏳ Step 1: timestamp conversion...")
+    print("   Step 1: timestamp conversion...")
     df['Start date'] = pd.to_datetime(df['Start date'], format='mixed')
     df['End date'] = pd.to_datetime(df['End date'], format='mixed')
     
     # =========================================================================
     # Step 2: numeric cleaning
     # =========================================================================
-    print("⏳ Step 2: numeric cleaning...")
+    print("   Step 2: numeric cleaning...")
     for col in ALL_GENERATION_COLS:
         if col in df.columns:
             df[col] = df[col].apply(clean_numeric_value)
@@ -121,21 +121,21 @@ def preprocess_smard_data(df: pd.DataFrame) -> pd.DataFrame:
     # =========================================================================
     # Step 3: calculate total generation (denominator)
     # =========================================================================
-    print("⏳ Step 3: calculate total generation...")
+    print("   Step 3: calculate total generation...")
     existing_cols = [c for c in ALL_GENERATION_COLS if c in df.columns]
     df['Total_Generation_MWh'] = df[existing_cols].sum(axis=1)
     
     # =========================================================================
     # Step 4: calculate renewable energy generation
     # =========================================================================
-    print("⏳ Step 4: calculate renewable energy generation...")
+    print("   Step 4: calculate renewable energy generation...")
     renewable_existing = [c for c in RENEWABLE_COLS if c in df.columns]
     df['Renewable_Generation_MWh'] = df[renewable_existing].sum(axis=1)
     
     # =========================================================================
     # Step 5: calculate CO2 emissions (grams)
     # =========================================================================
-    print("⏳ Step 5: calculate CO2 emissions...")
+    print("   Step 5: calculate CO2 emissions...")
     df['CO2_Emissions_g'] = 0.0
     for col, factor in EMISSION_FACTORS.items():
         if col in df.columns:
@@ -145,7 +145,7 @@ def preprocess_smard_data(df: pd.DataFrame) -> pd.DataFrame:
     # =========================================================================
     # Step 6: calculate final metrics
     # =========================================================================
-    print("⏳ Step 6: calculate final metrics...")
+    print("   Step 6: calculate final metrics...")
     
     # filter out zero generation (avoid division by zero)
     valid_mask = df['Total_Generation_MWh'] > 0
@@ -167,7 +167,7 @@ def preprocess_smard_data(df: pd.DataFrame) -> pd.DataFrame:
     # =========================================================================
     # Step 7: data quality check
     # =========================================================================
-    print("⏳ Step 7: data quality check...")
+    print("   Step 7: data quality check...")
     invalid_count = (~valid_mask).sum()
     if invalid_count > 0:
         print(f"    found {invalid_count} rows with zero generation")

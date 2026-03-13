@@ -1,7 +1,7 @@
 """
 LEAF - Feature Engineering
 ==========================
-为碳强度预测创建时间特征、滞后特征和滚动特征
+for carbon intensity prediction, create time features, lag features and rolling features
 """
 
 import pandas as pd
@@ -11,24 +11,24 @@ from typing import List, Optional, Tuple
 
 def create_time_features(df: pd.DataFrame, datetime_col: str = 'Start date') -> pd.DataFrame:
     """
-    创建时间相关特征
+    create time-related features
     
     Args:
-        df: 输入DataFrame
-        datetime_col: 时间列名
+        df: input DataFrame
+        datetime_col: datetime column
     
     Returns:
-        添加了时间特征的DataFrame
+        DataFrame with time features
     """
     df = df.copy()
     
-    # 确保是datetime类型
+    # ensure datetime type
     if not pd.api.types.is_datetime64_any_dtype(df[datetime_col]):
         df[datetime_col] = pd.to_datetime(df[datetime_col])
     
     dt = df[datetime_col]
     
-    # 基础时间特征
+    # basic time features
     df['hour'] = dt.dt.hour
     df['minute'] = dt.dt.minute
     df['dayofweek'] = dt.dt.dayofweek  # 0=Monday, 6=Sunday
@@ -37,7 +37,7 @@ def create_time_features(df: pd.DataFrame, datetime_col: str = 'Start date') -> 
     df['quarter'] = dt.dt.quarter
     df['weekofyear'] = dt.dt.isocalendar().week.astype(int)
     
-    # 周期性编码（正弦/余弦变换）
+    # periodic encoding (sine/cosine transformation)
     df['hour_sin'] = np.sin(2 * np.pi * df['hour'] / 24)
     df['hour_cos'] = np.cos(2 * np.pi * df['hour'] / 24)
     df['dayofweek_sin'] = np.sin(2 * np.pi * df['dayofweek'] / 7)
@@ -45,10 +45,10 @@ def create_time_features(df: pd.DataFrame, datetime_col: str = 'Start date') -> 
     df['month_sin'] = np.sin(2 * np.pi * df['month'] / 12)
     df['month_cos'] = np.cos(2 * np.pi * df['month'] / 12)
     
-    # 二值特征
+    # binary features
     df['is_weekend'] = (df['dayofweek'] >= 5).astype(int)
     
-    # 时段特征
+    # time of day features
     df['time_of_day'] = pd.cut(
         df['hour'],
         bins=[-1, 6, 12, 18, 24],
@@ -65,20 +65,20 @@ def create_lag_features(
     freq_minutes: int = 15
 ) -> pd.DataFrame:
     """
-    创建滞后特征
+    create lag features
     
     Args:
-        df: 输入DataFrame
-        target_col: 目标列名
-        lag_periods: 滞后时间列表（以小时为单位）
-        freq_minutes: 数据频率（分钟）
+        df: input DataFrame
+        target_col: target column
+        lag_periods: lag time list (in hours)
+        freq_minutes: data frequency (minutes)
     
     Returns:
-        添加了滞后特征的DataFrame
+        DataFrame with lag features
     """
     df = df.copy()
     
-    periods_per_hour = 60 // freq_minutes  # 15分钟数据 = 4个周期/小时
+    periods_per_hour = 60 // freq_minutes  # 15 minutes data = 4 periods/hour
     
     for lag_hours in lag_periods:
         lag_steps = lag_hours * periods_per_hour
@@ -95,16 +95,16 @@ def create_rolling_features(
     freq_minutes: int = 15
 ) -> pd.DataFrame:
     """
-    创建滚动统计特征
+    create rolling statistical features
     
     Args:
-        df: 输入DataFrame
-        target_col: 目标列名
-        windows: 窗口大小列表（以小时为单位）
-        freq_minutes: 数据频率（分钟）
+        df: input DataFrame
+        target_col: target column
+        windows: window size list (in hours)
+        freq_minutes: data frequency (minutes)
     
     Returns:
-        添加了滚动特征的DataFrame
+        DataFrame with rolling features
     """
     df = df.copy()
     
@@ -113,15 +113,15 @@ def create_rolling_features(
     for window_hours in windows:
         window_steps = window_hours * periods_per_hour
         
-        # 滚动均值
+        # rolling mean
         df[f'rolling_mean_{window_hours}h'] = (
             df[target_col]
-            .shift(1)  # 避免数据泄露
+            .shift(1)  # avoid data leakage
             .rolling(window=window_steps, min_periods=1)
             .mean()
         )
         
-        # 滚动标准差
+        # rolling standard deviation
         df[f'rolling_std_{window_hours}h'] = (
             df[target_col]
             .shift(1)
@@ -129,7 +129,7 @@ def create_rolling_features(
             .std()
         )
         
-        # 滚动最大最小值
+        # rolling maximum and minimum values
         df[f'rolling_max_{window_hours}h'] = (
             df[target_col]
             .shift(1)
@@ -154,16 +154,16 @@ def create_diff_features(
     freq_minutes: int = 15
 ) -> pd.DataFrame:
     """
-    创建差分特征
+    create difference features
     
     Args:
-        df: 输入DataFrame
-        target_col: 目标列名
-        diff_periods: 差分周期列表（以小时为单位）
-        freq_minutes: 数据频率（分钟）
+        df: input DataFrame
+        target_col: target column
+        diff_periods: difference period list (in hours)
+        freq_minutes: data frequency (minutes)
     
     Returns:
-        添加了差分特征的DataFrame
+        DataFrame with difference features
     """
     df = df.copy()
     
@@ -186,71 +186,71 @@ def build_features(
     freq_minutes: int = 15
 ) -> pd.DataFrame:
     """
-    完整特征工程流水线
+    full feature engineering pipeline
     
     Args:
-        df: 输入DataFrame
-        target_col: 目标列名
-        datetime_col: 时间列名
-        lag_hours: 滞后特征的小时数列表
-        rolling_hours: 滚动窗口的小时数列表
-        diff_hours: 差分特征的小时数列表
-        freq_minutes: 数据频率
+        df: input DataFrame
+        target_col: target column
+        datetime_col: datetime column
+        lag_hours: lag feature hour list
+        rolling_hours: rolling window hour list
+        diff_hours: difference feature hour list
+        freq_minutes: data frequency
     
     Returns:
-        包含所有特征的DataFrame
+        DataFrame with all features
     """
-    # 默认参数
+    # default parameters
     if lag_hours is None:
         lag_hours = [1, 2, 3, 6, 12, 24, 48, 168]  # 1h, 2h, ..., 1week
     if rolling_hours is None:
         rolling_hours = [6, 12, 24, 168]  # 6h, 12h, 24h, 1week
     if diff_hours is None:
-        diff_hours = [1, 24]  # 1h差分, 24h差分
+        diff_hours = [1, 24]  # 1h difference, 24h difference
     
-    print(f"⏳ 开始特征工程...")
-    print(f"   目标列: {target_col}")
-    print(f"   滞后特征: {lag_hours} 小时")
-    print(f"   滚动特征: {rolling_hours} 小时窗口")
+    print(f"   Start feature engineering...")
+    print(f"    target column: {target_col}")
+    print(f"    lag features: {lag_hours} hours")
+    print(f"    rolling features: {rolling_hours} hours window")
     
-    # 1. 时间特征
+    # 1. time features
     df = create_time_features(df, datetime_col)
-    print(f"   ✅ 时间特征创建完成")
+    print(f"      time features created")
     
-    # 2. 滞后特征
+    # 2. lag features
     df = create_lag_features(df, target_col, lag_hours, freq_minutes)
-    print(f"   ✅ 滞后特征创建完成")
+    print(f"      lag features created")
     
-    # 3. 滚动特征
+    # 3. rolling features
     df = create_rolling_features(df, target_col, rolling_hours, freq_minutes)
-    print(f"   ✅ 滚动特征创建完成")
+    print(f"      rolling features created")
     
-    # 4. 差分特征
+    # 4. difference features
     df = create_diff_features(df, target_col, diff_hours, freq_minutes)
-    print(f"   ✅ 差分特征创建完成")
+    print(f"      difference features created")
     
-    print(f"✅ 特征工程完成，总特征数: {len(df.columns)}")
+    print(f"      feature engineering completed, total features: {len(df.columns)}")
     
     return df
 
 
 def get_feature_columns(df: pd.DataFrame, exclude_cols: Optional[List[str]] = None) -> List[str]:
     """
-    获取用于训练的特征列名
+    get feature columns for training
     
     Args:
         df: DataFrame
-        exclude_cols: 要排除的列
+        exclude_cols: columns to exclude
     
     Returns:
-        特征列名列表
+        feature column names list
     """
     if exclude_cols is None:
         exclude_cols = [
             'Start date', 'End date',
-            'CO2_Intensity_gkWh',  # 目标
-            'Total_Generation_MWh', 'Renewable_Generation_MWh',  # 原始数据
-            'time_of_day'  # 分类变量
+            'CO2_Intensity_gkWh',  # target column
+            'Total_Generation_MWh', 'Renewable_Generation_MWh',  # original data
+            'time_of_day'  # categorical variable
         ]
     
     feature_cols = [col for col in df.columns if col not in exclude_cols]
@@ -265,13 +265,13 @@ def split_data_by_date(
     datetime_col: str = 'Start date'
 ) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
-    按日期划分数据集
+    split data by date
     
     Args:
-        df: 完整数据
-        train_end: 训练集结束日期 (exclusive)
-        val_end: 验证集结束日期 (exclusive)
-        datetime_col: 时间列名
+        df: full data
+        train_end: train set end date (exclusive)
+        val_end: validation set end date (exclusive)
+        datetime_col: datetime column
     
     Returns:
         (train_df, val_df, test_df)
@@ -289,7 +289,7 @@ def split_data_by_date(
     val_df = df[val_mask].copy()
     test_df = df[test_mask].copy()
     
-    print(f"数据集划分:")
+    print(f"dataset splitting:")
     print(f"  Train: {len(train_df):,} samples ({train_df[datetime_col].min()} → {train_df[datetime_col].max()})")
     print(f"  Val:   {len(val_df):,} samples ({val_df[datetime_col].min()} → {val_df[datetime_col].max()})")
     print(f"  Test:  {len(test_df):,} samples ({test_df[datetime_col].min()} → {test_df[datetime_col].max()})")
