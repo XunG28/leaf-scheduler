@@ -187,10 +187,6 @@ If you want to regenerate the synthetic job set used in the demo
 python scripts/generate_jobs_pro.py
 ```
 
-This script is a Python version of the experimental notebook
-`greenAI/jobs_generation.ipynb` and makes the job generation process
-transparent and reproducible.
-
 ---
 
 ## 5. Web Dashboard (Streamlit)
