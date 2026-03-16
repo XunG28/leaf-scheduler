@@ -195,6 +195,8 @@ The dashboard in `app/app.py` provides:
 
 *Run `streamlit run app/app.py` and open the Dashboard to see carbon intensity curves and the Suggestions box; the Results page shows the same comparison metrics as in the table above.*
 
+![Feature importance](figures/leaf_app.jpeg)
+
 ---
 
 ## 6. Installation and Usage
