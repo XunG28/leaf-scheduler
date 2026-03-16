@@ -2,6 +2,17 @@
 
 LEAF is a lightweight and fully reproducible framework for **carbon‑intensity forecasting** and **carbon‑aware scheduling** of lab activities and compute jobs.
 
+**Summary**
+
+- **Data**: SMARD (TransnetBW, 15‑min resolution, 2024‑03‑02 – 2026‑03‑08), production‑based CO₂ intensity using UBA 2023 factors.
+- **Forecast**: LightGBM model achieves **MAE ≈ 43 g/kWh, R² ≈ 0.85** vs multiple time‑series baselines on the last week of data.
+- **Scheduling result**: Carbon‑Aware with **predicted CO₂** reduces emissions by **≈17.3%** vs FIFO, reaching **≈88%** of the theoretical maximum (**19.8%** with perfect CO₂ knowledge), with **no deadline violations**.
+- **Trade‑off**: Emission savings come at the cost of higher average wait (e.g. ~150 min vs 8 min for FIFO), controlled via a shift horizon and delay penalty.
+- **Reproduce** (from `leaf-scheduler/`):
+  - `python scripts/process_raw_data.py`
+  - `python scripts/train_forecast.py`
+  - `python scripts/run_scheduler_with_forecast.py`
+
 It is built entirely on open data and open‑source tools, and is designed to:
 
 - use **transparent, lightweight ML** instead of heavy black‑box models,
@@ -10,7 +21,36 @@ It is built entirely on open data and open‑source tools, and is designed to:
 
 ---
 
-## 1. Architecture at a Glance
+## 1. Quickstart
+
+From the `leaf-scheduler/` directory:
+
+```bash
+conda create -n leaf python=3.10 -y
+conda activate leaf
+pip install -r requirements.txt
+
+# 1) Data preprocessing
+python scripts/process_raw_data.py
+
+# 2) Train CO₂ forecast model (LightGBM + baselines)
+python scripts/train_forecast.py
+
+# 3) Run scheduling demo using actual + predicted CO₂
+python scripts/run_scheduler_with_forecast.py
+```
+
+This will:
+
+- create `data/processed/energy_data_full.csv` with production‑based CO₂ intensity,
+- train and evaluate the LightGBM forecaster and baselines,
+- run FIFO and Carbon‑Aware scheduling on a synthetic job set in early March 2026,
+- write comparison metrics to `data/processed/schedule_comparison_with_forecast.csv`,
+- generate figures under `figures/` (for the README) and `docs/` (for the report).
+
+---
+
+## 2. Architecture at a Glance
 
 High‑level pipeline:
 
@@ -48,7 +88,7 @@ For detailed preprocessing and experiment notes, see:
 
 ---
 
-## 2. Data and CO₂ Intensity
+## 3. Data and CO₂ Intensity
 
 **Data source**
 
@@ -73,7 +113,7 @@ and documented in `docs/data_preprocessing_report.md`.
 
 ---
 
-## 3. Forecasting Carbon Intensity
+## 4. Forecasting Carbon Intensity
 
 **Target**
 
@@ -127,7 +167,7 @@ Training and evaluation pipeline:
 
 ---
 
-## 4. Carbon‑Aware Scheduling
+## 5. Carbon‑Aware Scheduling
 
 **Job model**
 
@@ -157,6 +197,12 @@ Training and evaluation pipeline:
 - average renewable share (%)
 - average wait and tardiness (minutes)
 - deadline violation rate
+
+**Definitions**
+
+- **FIFO**: baseline scheduling policy using the **actual CO₂** curve for evaluation.
+- **Carbon‑Aware (actual CO₂)**: carbon‑aware heuristic that has access to the **true future CO₂** at decision time (oracle / theoretical upper bound for emission savings).
+- **Carbon‑Aware (predicted CO₂)**: same heuristic but using the **LightGBM forecast** to decide when to run jobs; emissions are still evaluated against **actual CO₂** (realistic, deployable setting).
 
 **Key result (example configuration)**
 
@@ -189,7 +235,7 @@ python scripts/generate_jobs_pro.py
 
 ---
 
-## 5. Web Dashboard (Streamlit)
+## 6. Web Dashboard (Streamlit)
 
 The dashboard in `app/app.py` provides:
 
@@ -202,13 +248,13 @@ The dashboard in `app/app.py` provides:
 
 *Run `streamlit run app/app.py` and open the Dashboard to see carbon intensity curves and the Suggestions box; the Results page shows the same comparison metrics as in the table above.*
 
-![Feature importance](figures/leaf_app.jpeg)
+![Streamlit dashboard](figures/leaf_app.jpeg)
 
 ---
 
-## 6. Installation and Usage
+## 7. Installation and Usage (Details)
 
-### 6.1 Environment
+### 7.1 Environment
 
 ```bash
 conda create -n leaf python=3.10 -y
@@ -216,7 +262,7 @@ conda activate leaf
 pip install -r requirements.txt
 ```
 
-### 6.2 Data Preprocessing
+### 7.2 Data Preprocessing
 
 Process SMARD raw data into a cleaned time series with CO₂ intensity:
 
@@ -227,7 +273,7 @@ python scripts/process_raw_data.py
 This reads from `data/raw/Actual_generation_202403020000_202603090000_Quarterhour.csv`
 and writes `data/processed/energy_data_full.csv`.
 
-### 6.3 Train Forecast Model
+### 7.3 Train Forecast Model
 
 ```bash
 python scripts/train_forecast.py
